@@ -77,8 +77,8 @@ def BinLEDsToNewXY(posList, newX, newY, maxX, maxY) :
 		XYMatrix.append(eachX)
 		eachX = []
 
-	PrintXYMatrix(XYMatrix)
-	PrintXYMatrixSmall(XYMatrix)
+	#PrintXYMatrix(XYMatrix)
+	#PrintXYMatrixSmall(XYMatrix)
 	PrintXYMatrixImage(XYMatrix)
 
 	return XYMatrix
@@ -114,24 +114,25 @@ def PrintArduinoCode(XYMatrix) :
 
 	writeFile.close()
 
-captureVideo = 0
+captureVideo = 1
 fileName = 'LEDpositions.csv'
 
-binByPercentage = 1 #Keep aspect ratio
+binByPercentage = 0 #Keep aspect ratio
 percentBin = 0.1
-newX = 10  # X and Y size of the array that the pixels will be held in
-newY = 10  
+newX = 16  # X and Y size of the array that the pixels will be held in
+newY = 16  
+NumLEDS = 255
 
 if captureVideo :
 
-	ser = serial.Serial('/dev/tty.usbmodem2062411', 9600)
+	ser = serial.Serial('/dev/tty.usbmodem1668021', 9600)
 	# while 1 :
 		# for x in range(0, 85) :
 		# 	ser.write(str(x).encode())
 		# 	sleep(1)
 		# 	ser.flush()
 
-	cap = cv2.VideoCapture(2)
+	cap = cv2.VideoCapture(1)
 	cap.set(21, 0)
 
 	ret, frame = cap.read()
@@ -143,13 +144,13 @@ if captureVideo :
 
 	posList = []
 
-	for i in range(0, 240) :
+	for i in range(0, NumLEDS) :
 
-	    ser.write(str(i).encode())
+	    ser.write(str(i).encode() + str('\n'))
 	    sleep(0.1)
 
 	    tempList = []
-	    for j in range(0, 2) :
+	    for j in range(0, 5) :
 
 		    ret, frame = cap.read()
 
@@ -161,7 +162,7 @@ if captureVideo :
 		    #g = cv2.subtract(g, b)
 		    
 		    #ret,thresh1 = cv2.threshold(g,200,255,cv2.THRESH_BINARY)
-		    ret,thresh1 = cv2.threshold(r,250,255,cv2.THRESH_BINARY)
+		    ret,thresh1 = cv2.threshold(r,230,255,cv2.THRESH_BINARY)
 
 
 
@@ -190,11 +191,11 @@ if captureVideo :
 			    	(x,y),radius = cv2.minEnclosingCircle(finalContours[0])
 			    	center = (int(x),int(y))
 			    	radius = int(radius)
-			    	cv2.circle(frame,center,radius,(0,0,255),2)
+			    	cv2.circle(frame,center,radius,(0,0,255),8)
 			    	#print 'Contours: ' + str(count) + ' X: ' + str(x) + ' Y: ' + str(y) + ' W: ' + str(w) + ' H: ' + str(h) + ' Area: ' + str(cv2.contourArea(finalContours[0]))
 			    	tempList.append( (i, x, y) )
 
-			cv2.drawContours(frame, finalContours, -1, (0,255,0), 3)
+			cv2.drawContours(frame, finalContours, -1, (255,0,0), 20)
 
 		    #cv2.drawContours(thresh1, contours, -1, 255, 3)
 
@@ -283,9 +284,35 @@ minY = 999999999
 maxX = 0
 maxY = 0
 
+lastPos = 0;
+lastX = 0;
+lastY = 0;
+
+newPostList = []
+
 for i in range(0, len(posList)) :
 	curX = posList[i][1]
 	curY = posList[i][2]
+
+	print posList[i][0]
+	if posList[i][0] - lastPos > 1 :
+		print 'In Here ' + str(posList[i][1]) + ',' + str(posList[i][2]) + '     ' + str(lastX) + ',' + str(lastY)
+		# Interpolate
+		if lastX == 0 or lastY == 0 :
+			pass
+		else :
+			numLEDToInterp = posList[i][0] - lastPos
+			xDiff = curX - lastX
+			yDiff = curY - lastY
+
+			for x in range(0, numLEDToInterp)  :
+				print str(lastPos+x) + ',' + str(lastX + x*(xDiff/numLEDToInterp)) + ',' + str(lastY + x*(yDiff/numLEDToInterp))
+				newPostList.append( (lastPos+x, lastX + x*(xDiff/numLEDToInterp), lastY + x*(yDiff/numLEDToInterp)) )
+			print 'Out here'
+
+	lastX = curX
+	lastY = curY
+	lastPos = posList[i][0]
 
 	if curX > maxX :
 		maxX = curX
@@ -296,6 +323,11 @@ for i in range(0, len(posList)) :
 	if curY < minY :
 		minY = curY
 
+for i in range(0, len(newPostList)) :
+	posList.append(newPostList[i])
+
+for x in range(0, len(posList)) :
+	print posList[x]
 
 print 'MinX: ' + str(minX) + ' MaxX: ' + str(maxX) + ' MinY: ' + str(minY) + ' MaxY: ' + str(maxY)
 maxX = maxX - minX
