@@ -1,5 +1,13 @@
 #pragma once
 
+#ifndef ARDUINO
+#include <stdlib.h>
+#define RANDOM(maxVal) rand()%maxVal 
+#else
+#include <Arduino.h>
+#define RANDOM(maxVal) random(maxVal)
+#endif
+
 struct Color
 {
 	Color() {Red = 0; Green = 0; Blue = 0;};

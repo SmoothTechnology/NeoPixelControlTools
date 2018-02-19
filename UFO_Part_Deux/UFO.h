@@ -1,10 +1,12 @@
 #include "DefaultPatterns.h"
 #include "DefaultMappings.h"
+#include "LED_Driver_Intf.h"
+#include "Communication_Intf.h"
 
 class UFO 
 {
 public:
-	UFO();
+	UFO(LED_Driver_Intf* _LED_Driver, Communication_Intf* _Comm_Interface);
 	~UFO();
 
 	void RunUFO();
@@ -28,9 +30,15 @@ public:
 private:
 	UFOSettings curSettings;
 
+	LED_Driver_Intf* LED_Driver;
+	Communication_Intf* Comm_Interface;
+
 	unsigned long curFrame;	
 	Pattern_Intf* Patterns[80];
 	Mapping_Intf* Mappings[80];
+
+	void SetPattern(Pattern_Intf* newPattern);
+	void SetMapping(Mapping_Intf* newMapping);
 
 	void FillDefaultPatterns();
 	void FillDefaultMappings();
